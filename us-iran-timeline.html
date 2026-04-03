@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U.S.–Iran Conflict — Interactive Timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #181818;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e4dc;
+    --muted: #7a7670;
+    --dimmed: #3a3834;
+    --accent-us: #4e8ecb;
+    --accent-iran: #c0392b;
+    --accent-both: #c88b2a;
+    --tag-military: #c0392b;
+    --tag-sanctions: #c88b2a;
+    --tag-diplomacy: #4e8ecb;
+    --tag-nuclear: #5a9e52;
+    --tag-proxy: #9b59b6;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --spine-w: 1px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* ── LAYOUT ── */
+  .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar {
+    width: 280px; flex-shrink: 0;
+    background: var(--bg2);
+    border-right: var(--spine-w) solid var(--border);
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 2.5rem 2rem 2rem;
+    border-bottom: var(--spine-w) solid var(--border);
+  }
+
+  .sidebar-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.75rem;
+  }
+
+  .sidebar-title {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 700; line-height: 1.2;
+    color: var(--text); margin-bottom: 0.5rem;
+  }
+
+  .sidebar-title em { color: var(--accent-iran); font-style: italic; }
+
+  .sidebar-subtitle {
+    font-size: 12px; color: var(--muted); line-height: 1.5;
+  }
+
+  .sidebar-stats {
+    padding: 1.25rem 2rem;
+    border-bottom: var(--spine-w) solid var(--border);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  }
+
+  .stat { }
+  .stat-num {
+    font-family: var(--font-display); font-size: 28px; font-weight: 700;
+    color: var(--text); line-height: 1;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+  .sidebar-filters { padding: 1.25rem 2rem; border-bottom: var(--spine-w) solid var(--border); }
+  .filters-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; font-family: var(--font-mono); }
+
+  .filter-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 6px 10px;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--muted); font-family: var(--font-body); font-size: 13px;
+    border-radius: 4px; text-align: left; transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+  .filter-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .filter-btn.active { background: rgba(255,255,255,0.06); color: var(--text); }
+  .filter-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .filter-count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--dimmed); }
+  .filter-btn.active .filter-count { color: var(--muted); }
+
+  .sidebar-legend {
+    padding: 1.25rem 2rem;
+    font-size: 11px; color: var(--muted); line-height: 1.6;
+  }
+
+  .vs-badge {
+    margin: auto 2rem 2rem;
+    padding: 1rem;
+    border: var(--spine-w) solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+  }
+  .vs-badge .us { color: var(--accent-us); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; }
+  .vs-badge .vs { font-family: var(--font-display); font-size: 20px; color: var(--dimmed); margin: 0 8px; }
+  .vs-badge .iran { color: var(--accent-iran); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; }
+  .vs-badge p { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  /* ── MAIN TIMELINE ── */
+  .main { flex: 1; padding: 0 0 6rem; overflow-y: auto; }
+
+  .timeline-intro {
+    padding: 3rem 4rem 2.5rem;
+    border-bottom: var(--spine-w) solid var(--border);
+    max-width: 700px;
+  }
+  .timeline-intro h2 { font-family: var(--font-display); font-size: 14px; color: var(--muted); margin-bottom: 0.5rem; }
+  .timeline-intro p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+  .era-section { padding: 0 4rem; }
+
+  .era-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 2.5rem 0 1.5rem;
+    border-bottom: var(--spine-w) solid var(--border);
+    margin-bottom: 0;
+  }
+  .era-num {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 48px; color: var(--dimmed); line-height: 1;
+    flex-shrink: 0;
+  }
+  .era-info { }
+  .era-years { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .era-title { font-family: var(--font-display); font-size: 20px; color: var(--text); font-weight: 700; }
+  .era-desc { font-size: 12px; color: var(--muted); margin-top: 4px; max-width: 400px; line-height: 1.5; }
+
+  /* ── EVENT ROWS ── */
+  .event-row {
+    display: flex; gap: 0; border-bottom: var(--spine-w) solid var(--border);
+    cursor: pointer; transition: background 0.12s;
+    position: relative;
+  }
+  .event-row:hover { background: rgba(255,255,255,0.02); }
+  .event-row.active { background: rgba(255,255,255,0.03); }
+  .event-row.hidden { display: none; }
+
+  .event-date-col {
+    width: 110px; flex-shrink: 0; padding: 1.5rem 1.5rem 1.5rem 0;
+    display: flex; flex-direction: column; align-items: flex-end;
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    line-height: 1.3; text-align: right; padding-top: 1.75rem;
+  }
+
+  .event-spine-col {
+    width: 32px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+    position: relative;
+  }
+  .spine-line {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: var(--spine-w); background: var(--border2);
+    transform: translateX(-50%);
+  }
+  .event-dot {
+    position: relative; z-index: 1;
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-top: 1.75rem; flex-shrink: 0;
+    border: 2px solid var(--bg);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .event-row:hover .event-dot {
+    transform: scale(1.5);
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  .event-content { flex: 1; padding: 1.5rem 2rem 1.5rem 1rem; }
+
+  .event-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .tag {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 2px;
+    border: 1px solid currentColor; opacity: 0.7;
+  }
+
+  .event-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .event-title {
+    font-family: var(--font-display); font-size: 17px; font-weight: 700;
+    color: var(--text); line-height: 1.3; margin-bottom: 0.35rem;
+  }
+  .event-impact-badge {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
+    padding: 3px 8px; border-radius: 2px; flex-shrink: 0;
+    background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border);
+    margin-top: 3px;
+  }
+  .event-impact-badge.high { color: #c0392b; border-color: rgba(192,57,43,0.3); background: rgba(192,57,43,0.05); }
+
+  .event-summary { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 520px; }
+
+  .expand-hint {
+    margin-top: 0.75rem; font-family: var(--font-mono); font-size: 10px;
+    color: var(--dimmed); letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .event-row:hover .expand-hint { color: var(--muted); }
+  .event-row.active .expand-hint { display: none; }
+
+  /* ── DETAIL PANEL ── */
+  .detail-overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.7);
+    display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+  .detail-overlay.open { display: flex; }
+
+  @media (min-width: 900px) {
+    .detail-overlay { align-items: center; justify-content: flex-end; }
+  }
+
+  .detail-panel {
+    background: var(--bg2);
+    border-top: var(--spine-w) solid var(--border2);
+    width: 100%;
+    max-height: 85vh; overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  .detail-overlay.open .detail-panel { transform: translateY(0); }
+
+  @media (min-width: 900px) {
+    .detail-panel {
+      width: 480px; max-height: 100vh;
+      border-top: none; border-left: var(--spine-w) solid var(--border2);
+      transform: translateX(100%);
+    }
+    .detail-overlay.open .detail-panel { transform: translateX(0); }
+  }
+
+  .panel-close {
+    position: sticky; top: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--bg2); border-bottom: var(--spine-w) solid var(--border);
+  }
+  .close-btn {
+    background: none; border: 1px solid var(--border2);
+    color: var(--muted); cursor: pointer; font-size: 18px;
+    width: 32px; height: 32px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; font-family: var(--font-body);
+  }
+  .close-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .panel-tag { }
+
+  .panel-body { padding: 2rem 1.5rem; }
+
+  .panel-date {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--muted); letter-spacing: 0.1em; margin-bottom: 0.5rem;
+  }
+
+  .panel-title {
+    font-family: var(--font-display); font-size: 24px; font-weight: 700;
+    line-height: 1.2; margin-bottom: 1.25rem; color: var(--text);
+  }
+
+  .panel-divider {
+    height: var(--spine-w); background: var(--border); margin-bottom: 1.5rem;
+  }
+
+  .panel-actor {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    color: var(--muted); margin-bottom: 1.5rem;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px;
+  }
+  .actor-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .panel-description {
+    font-size: 14px; line-height: 1.75; color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-context {
+    font-size: 13px; line-height: 1.7; color: var(--muted);
+    padding: 1rem; border-left: 2px solid var(--border2);
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-key-facts { margin-bottom: 1.5rem; }
+  .facts-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+  .fact-item { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+  .fact-bullet { color: var(--dimmed); margin-top: 2px; flex-shrink: 0; }
+  .fact-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .panel-links { border-top: var(--spine-w) solid var(--border); padding-top: 1.25rem; margin-top: 0.5rem; }
+  .links-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+
+  .read-more-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 4px;
+    text-decoration: none; color: var(--text);
+    background: transparent; margin-bottom: 8px;
+    transition: all 0.15s;
+  }
+  .read-more-link:hover { border-color: var(--border2); background: rgba(255,255,255,0.03); }
+  .link-info { }
+  .link-source { font-family: var(--font-mono); font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .link-title { font-size: 13px; color: var(--text); line-height: 1.3; }
+  .link-arrow { color: var(--muted); flex-shrink: 0; font-size: 16px; transition: transform 0.15s; }
+  .read-more-link:hover .link-arrow { transform: translateX(3px); color: var(--text); }
+
+  /* Scrollbar */
+  .main::-webkit-scrollbar, .detail-panel::-webkit-scrollbar { width: 3px; }
+  .main::-webkit-scrollbar-track, .detail-panel::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--dimmed); border-radius: 2px; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .timeline-intro, .era-section { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .event-date-col { width: 70px; font-size: 10px; }
+    .event-content { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .event-title { font-size: 15px; }
+  }
+
+  /* ── MOBILE NAV ── */
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+    background: var(--bg2); border-top: var(--spine-w) solid var(--border);
+    padding: 0.75rem 1rem; gap: 6px; overflow-x: auto; flex-wrap: nowrap;
+  }
+  @media (max-width: 768px) { .mobile-nav { display: flex; } }
+
+  .mob-filter {
+    flex-shrink: 0; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    font-family: var(--font-body); font-size: 12px; color: var(--muted); cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .mob-filter.active { border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.05); }
+
+  /* Animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .event-row { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-eyebrow">Interactive Timeline</div>
+      <h1 class="sidebar-title">U.S.–<em>Iran</em><br>Conflict</h1>
+      <p class="sidebar-subtitle">45 years of confrontation, proxy wars, nuclear brinkmanship &amp; failed diplomacy</p>
+    </div>
+
+    <div class="sidebar-stats">
+      <div class="stat">
+        <div class="stat-num">42</div>
+        <div class="stat-label">Key events</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Eras</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">45</div>
+        <div class="stat-label">Years</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Peace deals</div>
+      </div>
+    </div>
+
+    <div class="sidebar-filters">
+      <div class="filters-label">Filter by type</div>
+      <button class="filter-btn active" data-filter="all">
+        <span class="filter-dot" style="background:#7a7670"></span>
+        All events
+        <span class="filter-count">27</span>
+      </button>
+      <button class="filter-btn" data-filter="military">
+        <span class="filter-dot" style="background:var(--tag-military)"></span>
+        Military
+        <span class="filter-count">7</span>
+      </button>
+      <button class="filter-btn" data-filter="sanctions">
+        <span class="filter-dot" style="background:var(--tag-sanctions)"></span>
+        Sanctions
+        <span class="filter-count">5</span>
+      </button>
+      <button class="filter-btn" data-filter="diplomacy">
+        <span class="filter-dot" style="background:var(--tag-diplomacy)"></span>
+        Diplomacy
+        <span class="filter-count">7</span>
+      </button>
+      <button class="filter-btn" data-filter="nuclear">
+        <span class="filter-dot" style="background:var(--tag-nuclear)"></span>
+        Nuclear
+        <span class="filter-count">5</span>
+      </button>
+      <button class="filter-btn" data-filter="proxy">
+        <span class="filter-dot" style="background:var(--tag-proxy)"></span>
+        Proxy war
+        <span class="filter-count">3</span>
+      </button>
+    </div>
+
+    <div class="vs-badge">
+      <div><span class="us">United States</span><span class="vs">vs</span><span class="iran">Iran</span></div>
+      <p>No formal declaration of war. Continuous undeclared conflict.</p>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+    <div class="timeline-intro">
+      <h2>The story</h2>
+      <p>The U.S. and Iran have been locked in a conflict that defies easy categories — not quite war, never quite peace. It began when Iranian students stormed the U.S. Embassy in 1979. It has since included hostage crises, proxy armies, computer viruses, assassinations, crippling sanctions, a nuclear deal, and direct missile exchanges. Click any event to read the full story and explore external sources.</p>
+    </div>
+
+    <div id="timeline-body"></div>
+  </main>
+</div>
+
+<!-- MOBILE FILTER NAV -->
+<nav class="mobile-nav">
+  <button class="mob-filter active" data-filter="all">All</button>
+  <button class="mob-filter" data-filter="military">Military</button>
+  <button class="mob-filter" data-filter="sanctions">Sanctions</button>
+  <button class="mob-filter" data-filter="diplomacy">Diplomacy</button>
+  <button class="mob-filter" data-filter="nuclear">Nuclear</button>
+  <button class="mob-filter" data-filter="proxy">Proxy</button>
+</nav>
+
+<!-- DETAIL PANEL OVERLAY -->
+<div class="detail-overlay" id="overlay">
+  <div class="detail-panel" id="detail-panel">
+    <div class="panel-close">
+      <div class="panel-tag" id="panel-tag-display"></div>
+      <button class="close-btn" id="close-btn">×</button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-date" id="panel-date"></div>
+      <div class="panel-title" id="panel-title"></div>
+      <div class="panel-divider"></div>
+      <div class="panel-actor" id="panel-actor">
+        <span class="actor-dot" id="actor-dot"></span>
+        <span id="actor-text"></span>
+      </div>
+      <p class="panel-description" id="panel-desc"></p>
+      <blockquote class="panel-context" id="panel-context"></blockquote>
+      <div class="panel-key-facts" id="panel-facts-container">
+        <div class="facts-label">Key facts</div>
+        <div id="panel-facts"></div>
+      </div>
+      <div class="panel-links">
+        <div class="links-label">Read more — external sources</div>
+        <div id="panel-links"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TAG_COLORS = {
+  military:  '#c0392b',
+  sanctions: '#c88b2a',
+  diplomacy: '#4e8ecb',
+  nuclear:   '#5a9e52',
+  proxy:     '#9b59b6',
+};
+
+const EVENTS = [
+  // ── ERA 1 ──
+  {
+    era: 1, eraYears: "1979–1989", eraTitle: "Revolution & Hostage Crisis",
+    eraDesc: "The Islamic Revolution shatters U.S.–Iran relations. A student takeover of the U.S. Embassy in Tehran creates 444 days of crisis and a permanent wound.",
+    date: "Nov 4, 1979", tag: "diplomacy", impact: "high",
+    title: "U.S. Embassy hostage crisis begins",
+    actor: "Iran initiates", actorColor: "#c0392b",
+    summary: "Iranian students storm the U.S. Embassy, taking 52 Americans hostage for 444 days. The U.S. breaks all diplomatic relations.",
+    description: "On November 4, 1979, a group of Iranian students who called themselves the 'Muslim Student Followers of the Imam's Line' stormed the United States Embassy in Tehran, seizing 52 American diplomats and staff who were held captive for 444 days. The crisis was rooted in U.S. support for the recently deposed Shah Mohammad Reza Pahlavi, particularly after President Carter admitted the Shah to the U.S. for medical treatment. Ayatollah Khomeini's government eventually endorsed the takeover.",
+    context: "The hostage crisis effectively ended Jimmy Carter's presidency, defined the early relationship between the Islamic Republic and the U.S., and resulted in a complete severance of diplomatic relations that has never been formally restored.",
+    facts: [
+      "52 American diplomats were held for exactly 444 days",
+      "President Carter's failed rescue attempt (Operation Eagle Claw) killed 8 U.S. servicemen",
+      "Hostages were released minutes after Ronald Reagan's inauguration on January 20, 1981",
+      "The U.S. froze $12 billion in Iranian assets and imposed its first major sanctions regime"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Iran hostage crisis — full account", url: "https://en.wikipedia.org/wiki/Iran_hostage_crisis" },
+      { source: "BBC History", title: "The Iran hostage crisis explained", url: "https://www.bbc.co.uk/history/events/iran_hostage_crisis" },
+      { source: "The Atlantic", title: "America and Iran: The 40-year standoff", url: "https://www.theatlantic.com/international/archive/2019/06/us-iran-history-1979/592178/" }
+    ]
+  },
+  {
+    era: 1, date: "Apr 24, 1980", tag: "military", impact: "high",
+    title: "Operation Eagle Claw — rescue mission fails",
+    actor: "U.S. military", actorColor: "#4e8ecb",
+    summary: "A U.S. special forces rescue mission crashes in the Iranian desert. Eight soldiers die. The failure deepens the humiliation.",
+    description: "Operation Eagle Claw was a covert U.S. military operation ordered by President Carter to rescue the 52 hostages held at the U.S. Embassy in Tehran. The operation was a catastrophic failure — a severe sandstorm called a 'haboob' caused helicopter malfunctions, and during the abort sequence at a staging area called Desert One, a helicopter collided with a transport aircraft. Eight U.S. servicemen were killed and five were injured. The wreckage, including classified documents and the burned bodies of soldiers, was left behind.",
+    context: "The failure of Eagle Claw was a profound humiliation for the United States. Iranian state television broadcast footage of the wreckage. The disaster contributed significantly to Carter's defeat by Ronald Reagan in November 1980.",
+    facts: [
+      "8 U.S. servicemen were killed in the collision and fire",
+      "3 of the 8 helicopters malfunctioned before reaching Tehran — one below the minimum needed",
+      "Iranian forces captured classified documents from the abandoned aircraft",
+      "The mission was abandoned before reaching Tehran; no hostages were rescued"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Operation Eagle Claw", url: "https://en.wikipedia.org/wiki/Operation_Eagle_Claw" },
+      { source: "History.com", title: "The failed mission to rescue the Iran hostages", url: "https://www.history.com/news/iran-hostage-crisis-rescue-attempt-operation-eagle-claw" },
+      { source: "The Guardian", title: "Operation Eagle Claw: the Iran rescue disaster", url: "https://www.theguardian.com/world/2020/jan/09/operation-eagle-claw-iran-hostage-crisis-rescue-disaster" }
+    ]
+  },
+  {
+    era: 1, date: "1980–1988", tag: "proxy", impact: "high",
+    title: "U.S. backs Iraq in the Iran–Iraq War",
+    actor: "U.S. proxy support", actorColor: "#9b59b6",
+    summary: "The U.S. provides Saddam Hussein's Iraq with intelligence, weapons, and diplomatic cover — even as Iraq uses chemical weapons against Iran.",
+    description: "The Iran–Iraq War (1980–1988) was one of the deadliest conflicts of the 20th century, killing between 500,000 and one million people. The U.S., fearing an Iranian revolutionary victory and the spread of Khomeini's Islamic Republic ideology, provided substantial support to Iraq: battlefield intelligence including satellite imagery, economic loans, agricultural credits, and political cover in the UN Security Council. This support continued even after it became clear Iraq was using chemical weapons against Iranian forces and Kurdish civilians.",
+    context: "The U.S. support for Saddam Hussein during this period created deep, lasting bitterness in Iran. From Iran's perspective, the U.S. had actively supported a war that killed hundreds of thousands of Iranians and saw chemical weapons deployed against them — only to later invade and destroy that same Iraq.",
+    facts: [
+      "The war lasted 8 years (1980–1988) with between 500,000–1,000,000 killed",
+      "The CIA provided Iraq with detailed battle planning and satellite reconnaissance",
+      "The U.S. restored full diplomatic relations with Iraq in 1984 despite known chemical weapons use",
+      "Donald Rumsfeld visited Baghdad in 1983 and 1984 to facilitate the relationship with Saddam Hussein"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Iran–Iraq War", url: "https://en.wikipedia.org/wiki/Iran%E2%80%93Iraq_War" },
+      { source: "Foreign Policy", title: "Exclusive: CIA Files Prove America Helped Saddam as He Gassed Iran", url: "https://foreignpolicy.com/2013/08/26/exclusive-cia-files-prove-america-helped-saddam-as-he-gassed-iran/" },
+      { source: "The National Security Archive", title: "U.S.-Iraq relations and chemical weapons", url: "https://nsarchive.gwu.edu/briefing-book/iraq/2013-08-25/iraqs-use-chemical-weapons-against-iran" }
+    ]
+  },
+  {
+    era: 1, date: "Jul 3, 1988", tag: "military", impact: "high",
+    title: "USS Vincennes shoots down Iran Air 655",
+    actor: "U.S. Navy", actorColor: "#4e8ecb",
+    summary: "A U.S. Navy warship shoots down an Iranian civilian airliner over the Persian Gulf. All 290 passengers and crew are killed.",
+    description: "The USS Vincennes, a guided-missile cruiser operating in the Persian Gulf during the Iran–Iraq War, shot down Iran Air Flight 655 — a commercial Airbus A300 — killing all 290 people on board, including 66 children. The crew of the Vincennes misidentified the aircraft as an attacking Iranian F-14 fighter jet. The aircraft was in Iranian airspace and on a routine scheduled flight. The Reagan administration initially tried to blame Iran for the incident.",
+    context: "The U.S. never formally apologized to Iran. In 1996, the U.S. agreed to pay $61.8 million in compensation to the families of the victims (around $213,000 per victim) through the International Court of Justice — without admitting legal liability or expressing an apology. Iran has never forgotten this incident.",
+    facts: [
+      "290 people killed including 66 children, all Iranian nationals",
+      "The Vincennes was in Iranian territorial waters at the time of the engagement",
+      "The U.S. awarded the Vincennes' air warfare coordinator the Legion of Merit — causing outrage",
+      "President Reagan called it a 'proper defensive action' while expressing 'deep regret'"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Iran Air Flight 655", url: "https://en.wikipedia.org/wiki/Iran_Air_Flight_655" },
+      { source: "The Guardian", title: "Iran Air Flight 655: a tragedy the US never acknowledged", url: "https://www.theguardian.com/world/2019/jun/29/iran-nuclear-us-history-timeline" },
+      { source: "Newsweek", title: "When the U.S. shot down an Iranian passenger plane", url: "https://www.newsweek.com/when-us-shot-down-iran-air-flight-655-forgotten-history-1493771" }
+    ]
+  },
+
+  // ── ERA 2 ──
+  {
+    era: 2, eraYears: "1990–2001", eraTitle: "Proxy Escalation & Missed Openings",
+    eraDesc: "Iran exports its revolutionary influence through Hezbollah. Reformist President Khatami offers dialogue — but hardliners on both sides block it.",
+    date: "1992–1996", tag: "proxy", impact: "high",
+    title: "Iran-backed bombings: AMIA & Khobar Towers",
+    actor: "Iran via Hezbollah proxies", actorColor: "#9b59b6",
+    summary: "Iran-linked Hezbollah operatives bomb a Jewish center in Buenos Aires (85 dead) and a U.S. military barracks in Saudi Arabia (19 dead).",
+    description: "Two devastating bombings were linked to Iran and Hezbollah during this period. On July 18, 1994, a car bomb destroyed the AMIA Jewish community center in Buenos Aires, Argentina — the deadliest antisemitic attack since WWII, killing 85 people and wounding 300. Argentine prosecutors later formally charged Iranian officials, including former President Rafsanjani. On June 25, 1996, a truck bomb destroyed the Khobar Towers complex housing U.S. Air Force personnel in Saudi Arabia, killing 19 American servicemen and wounding nearly 500.",
+    context: "These attacks reinforced the U.S. State Department's designation of Iran as the world's foremost state sponsor of terrorism. They made any normalization of relations politically impossible in the U.S. Congress, even as reformists in Iran were pushing for change.",
+    facts: [
+      "AMIA bombing: 85 killed, 300 wounded — deadliest antisemitic attack since WWII",
+      "Khobar Towers: 19 U.S. Air Force members killed, 498 wounded",
+      "In 2006, a U.S. federal court found Iran liable for the Khobar attack and awarded $254 million to victims' families",
+      "Argentina issued international arrest warrants for Iranian officials including a former president"
+    ],
+    links: [
+      { source: "Wikipedia", title: "AMIA bombing", url: "https://en.wikipedia.org/wiki/AMIA_bombing" },
+      { source: "Wikipedia", title: "Khobar Towers bombing", url: "https://en.wikipedia.org/wiki/Khobar_Towers_bombing" },
+      { source: "CFR", title: "Iran's Foreign and Defense Policies", url: "https://www.cfr.org/backgrounder/irans-foreign-defense-policies" }
+    ]
+  },
+  {
+    era: 2, date: "Jan 1998", tag: "diplomacy", impact: "mid",
+    title: "President Khatami's CNN interview — olive branch",
+    actor: "Iran signals openness", actorColor: "#c88b2a",
+    summary: "Reformist President Khatami proposes a 'dialogue of civilizations' and expresses admiration for the American people in a landmark CNN interview.",
+    description: "In a landmark CNN interview with Christiane Amanpour, Iranian President Mohammad Khatami broke with decades of official Iranian rhetoric by expressing admiration for American civilization and proposing a 'dialogue of civilizations' to replace confrontation. He called for cultural and scholarly exchanges between the two peoples and expressed regret for the hostage crisis. Secretary of State Madeleine Albright responded cautiously with openings on cultural and sporting exchanges.",
+    context: "Khatami's overture was blocked by hardline Supreme Leader Khamenei, who viewed any rapprochement with the U.S. as a threat to the revolution's identity. In the U.S., Congress remained deeply hostile. The moment represented perhaps the most genuine missed opportunity for normalization before the nuclear issue dominated everything.",
+    facts: [
+      "Khatami won the 1997 presidential election by a landslide, surprising hardliners",
+      "The U.S. and Iran held their first official soccer match at the 1998 World Cup, with the Iranian team presenting white roses to the Americans",
+      "Albright later acknowledged the CIA's role in the 1953 coup that overthrew Iran's democratic government — the first such U.S. admission",
+      "Hardliners in Iran's judiciary and Revolutionary Guard systematically undermined Khatami's reforms"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Mohammad Khatami", url: "https://en.wikipedia.org/wiki/Mohammad_Khatami" },
+      { source: "The Atlantic", title: "The day Iran and America almost made peace", url: "https://www.theatlantic.com/international/archive/2014/04/the-day-iran-and-america-almost-made-peace/360130/" },
+      { source: "NPR", title: "A Look Back At Khatami's Iran", url: "https://www.npr.org/2009/06/12/105248988/a-look-back-at-khatamis-iran" }
+    ]
+  },
+
+  // ── ERA 3 ──
+  {
+    era: 3, eraYears: "2002–2012", eraTitle: "Axis of Evil & Nuclear Crisis",
+    eraDesc: "Bush's 'Axis of Evil' speech empowers Iranian hardliners. A secret nuclear program is revealed, triggering 10 years of escalating sanctions and covert war.",
+    date: "Jan 29, 2002", tag: "diplomacy", impact: "high",
+    title: "Bush labels Iran part of the 'Axis of Evil'",
+    actor: "U.S. rhetoric", actorColor: "#4e8ecb",
+    summary: "In his State of the Union, President Bush groups Iran, Iraq, and North Korea as an 'Axis of Evil' — devastating Iran's reform movement.",
+    description: "In his first State of the Union address after 9/11, President George W. Bush declared: 'States like these, and their terrorist allies, constitute an axis of evil, arming to threaten the peace of the world.' Iran was grouped alongside Iraq and North Korea. The speech came just months after Iran had quietly cooperated with the U.S. in Afghanistan against their shared enemy, the Taliban. For Iranian reformists around President Khatami who were pushing for better relations, the speech was a catastrophic blow.",
+    context: "The 'Axis of Evil' designation handed enormous political ammunition to Supreme Leader Khamenei and Iranian hardliners who had always argued that the U.S. could not be trusted and that dialogue was futile. The reform movement in Iran effectively collapsed. Mahmoud Ahmadinejad, a hardline firebrand, was elected president in 2005.",
+    facts: [
+      "The speechwriter who coined 'Axis of Evil' was David Frum, who later called it 'Axis of Hatred'",
+      "Iran had provided intelligence assistance to the U.S. against the Taliban in Afghanistan just months earlier",
+      "The speech was drafted without consultation with European allies, who were deeply alarmed",
+      "Iranian diplomats reportedly walked out of a UN meeting after the speech"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Axis of evil", url: "https://en.wikipedia.org/wiki/Axis_of_evil" },
+      { source: "The Guardian", title: "'Axis of evil' speech that changed the world", url: "https://www.theguardian.com/world/2003/feb/16/usa.iraq" },
+      { source: "Brookings", title: "The Axis of Evil: Lessons Learned", url: "https://www.brookings.edu/articles/the-axis-of-evil-ten-years-later/" }
+    ]
+  },
+  {
+    era: 3, date: "Aug 2002", tag: "nuclear", impact: "high",
+    title: "Iran's secret nuclear program is revealed",
+    actor: "IAEA investigation begins", actorColor: "#5a9e52",
+    summary: "An Iranian opposition group reveals that Iran has secretly built uranium enrichment facilities at Natanz and a heavy water plant at Arak.",
+    description: "On August 14, 2002, the National Council of Resistance of Iran — an Iranian opposition group in exile — held a press conference in Washington DC revealing that Iran had secretly built a large uranium enrichment facility at Natanz and a heavy water production plant at Arak, neither of which had been declared to the IAEA as required. The revelation triggered IAEA inspections and launched a 20-year international crisis over Iran's nuclear intentions.",
+    context: "Iran argued its nuclear program was entirely peaceful and that it had the right to enrich uranium under the Nuclear Non-Proliferation Treaty. The U.S. and Israel accused Iran of pursuing nuclear weapons. This ambiguity — Iran never declared weapons intent while developing all the technical capabilities needed — defined the crisis.",
+    facts: [
+      "Natanz enrichment facility had been under construction for years without IAEA notification",
+      "The Arak heavy water reactor could produce plutonium — an alternative path to a nuclear weapon",
+      "Iran had signed the NPT but the treaty permits civilian enrichment, creating a legal gray area",
+      "By 2006, Iran had installed 3,000 centrifuges at Natanz; by 2012, over 13,000"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Nuclear program of Iran", url: "https://en.wikipedia.org/wiki/Nuclear_program_of_Iran" },
+      { source: "Arms Control Association", title: "Timeline of Nuclear Diplomacy With Iran", url: "https://www.armscontrol.org/factsheets/iran-nuclear-agreement-at-a-glance" },
+      { source: "IAEA", title: "Iran and the IAEA — official history", url: "https://www.iaea.org/topics/iran-nuclear-deal" }
+    ]
+  },
+  {
+    era: 3, date: "2007–2010", tag: "military", impact: "high",
+    title: "Stuxnet cyberweapon & nuclear scientist assassinations",
+    actor: "U.S.–Israel covert operations", actorColor: "#c0392b",
+    summary: "A sophisticated computer worm destroys Iranian centrifuges. Iranian nuclear scientists are assassinated on Tehran streets. Neither country officially admits responsibility.",
+    description: "Stuxnet was the world's first known offensive cyber weapon, jointly developed by the United States and Israel under a program reportedly codenamed 'Olympic Games.' The worm was specifically designed to infiltrate the control systems of Siemens centrifuges at Iran's Natanz enrichment facility, causing them to spin erratically and self-destruct while reporting normal operations to operators. It destroyed approximately 1,000 centrifuges. Separately, five Iranian nuclear scientists were assassinated between 2010 and 2012, with Iran blaming Mossad and the CIA.",
+    context: "Stuxnet marked the opening of a new era in warfare — the first known state-deployed cyberweapon targeting industrial infrastructure. When it escaped the confines of Natanz and spread across the internet in 2010, it became publicly known. The U.S. and Israel have never officially acknowledged the program.",
+    facts: [
+      "Stuxnet was approximately 50 times the size of a typical computer virus, showing extraordinary sophistication",
+      "The worm was first discovered by a Belarusian cybersecurity firm in 2010 after it escaped Natanz",
+      "Stuxnet set back Iran's nuclear program by an estimated 1–2 years",
+      "Five Iranian nuclear scientists were killed: Masoud Alimohammadi, Majid Shahriari, Darioush Rezaeinejad, Mostafa Ahmadi-Roshan, and Fereydoon Abbasi"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Stuxnet", url: "https://en.wikipedia.org/wiki/Stuxnet" },
+      { source: "The New York Times", title: "Obama Order Sped Up Wave of Cyberattacks Against Iran", url: "https://www.nytimes.com/2012/06/01/world/middleeast/obama-ordered-wave-of-cyberattacks-against-iran.html" },
+      { source: "Wired", title: "An Unprecedented Look at Stuxnet, the World's First Digital Weapon", url: "https://www.wired.com/2014/11/countdown-to-zero-day-stuxnet/" }
+    ]
+  },
+  {
+    era: 3, date: "2010–2012", tag: "sanctions", impact: "high",
+    title: "Crippling oil & banking sanctions",
+    actor: "U.S. and EU economic war", actorColor: "#c88b2a",
+    summary: "The U.S. and EU target Iran's oil exports and cut it off from SWIFT banking. Iran's currency collapses, oil exports halve, inflation surges.",
+    description: "Between 2010 and 2012, the United States and European Union imposed an unprecedented package of sanctions targeting the core of Iran's economy. The U.S. sanctioned Iran's central bank and imposed penalties on foreign banks that processed Iranian transactions. The EU enacted an oil embargo — Iran's largest export market — and in February 2012, Iran was disconnected from SWIFT, the global interbank messaging system, effectively cutting it off from the international financial system. Iran's oil exports fell from 2.5 million barrels per day to under 1 million.",
+    context: "The goal was to force Iran to the negotiating table. It worked — but only partially. Iran's economy contracted sharply, but the nuclear program continued. The sanctions created conditions for the eventual 2015 JCPOA deal, but also hardened Iranian public opinion against the West.",
+    facts: [
+      "Iran's currency (the rial) lost over 60% of its value against the dollar between 2011 and 2013",
+      "Oil revenues dropped from approximately $95 billion in 2011 to $56 billion in 2012",
+      "Medicine shortages became acute as banking restrictions made it difficult to import goods",
+      "The EU oil embargo was the most significant economic pressure — Europe had been Iran's largest crude buyer"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Sanctions against Iran", url: "https://en.wikipedia.org/wiki/Sanctions_against_Iran" },
+      { source: "Council on Foreign Relations", title: "The Pressure of Sanctions on Iran", url: "https://www.cfr.org/backgrounder/what-are-sanctions-iran" },
+      { source: "BBC", title: "Iran sanctions: What do they mean and how do they work?", url: "https://www.bbc.com/news/world-middle-east-15983302" }
+    ]
+  },
+
+  // ── ERA 4 ──
+  {
+    era: 4, eraYears: "2013–2017", eraTitle: "The Nuclear Deal",
+    eraDesc: "Secret backchannel talks in Oman lead to the JCPOA — the first U.S.–Iran diplomatic achievement in 34 years. A brief, fragile moment of hope.",
+    date: "Nov 24, 2013", tag: "diplomacy", impact: "high",
+    title: "Geneva interim deal — first breakthrough in 34 years",
+    actor: "Both sides negotiate", actorColor: "#5a9e52",
+    summary: "After secret talks in Oman, the U.S. and Iran agree to an interim nuclear freeze in Geneva. The first U.S.–Iran diplomatic agreement since 1981.",
+    description: "The Joint Plan of Action (JPOA), agreed in Geneva on November 24, 2013, was the first formal agreement between the U.S. and Iran in over three decades. Iran agreed to halt enrichment above 5%, dilute its stockpile of 20%-enriched uranium, and halt construction at the Arak heavy water reactor. In return, the U.S. and EU provided limited sanctions relief worth approximately $7 billion. The breakthrough followed months of secret backchannel negotiations held in Oman, facilitated by Sultan Qaboos.",
+    context: "The interim deal was possible because both sides needed it: Iran's economy was reeling from sanctions, and the Obama administration needed to demonstrate diplomacy could work with Iran. Critics — especially Israel and Saudi Arabia — warned it was a dangerous concession that gave Iran breathing room while it built toward a bomb.",
+    facts: [
+      "The secret Oman channel began in early 2013; Obama authorized direct talks with Iran for the first time",
+      "Deputy Secretary of State William Burns and Jake Sullivan (later National Security Advisor) led the U.S. side",
+      "The deal provided approximately $7 billion in relief against $100+ billion in frozen assets",
+      "The interim deal lasted 6 months and was extended while final JCPOA negotiations continued"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Joint Plan of Action (2013 Geneva deal)", url: "https://en.wikipedia.org/wiki/Joint_Plan_of_Action" },
+      { source: "Arms Control Association", title: "The Iran Nuclear Deal at a Glance", url: "https://www.armscontrol.org/factsheets/iran-nuclear-agreement-at-a-glance" },
+      { source: "The New Yorker", title: "The Diplomatic Back Channel", url: "https://www.newyorker.com/magazine/2013/11/18/the-diplomatic-back-channel" }
+    ]
+  },
+  {
+    era: 4, date: "Jul 14, 2015", tag: "nuclear", impact: "high",
+    title: "JCPOA signed — historic nuclear deal reached",
+    actor: "U.S., Iran + 5 world powers", actorColor: "#5a9e52",
+    summary: "The Joint Comprehensive Plan of Action: Iran dismantles 97% of its enriched uranium and accepts intrusive inspections. In return, international sanctions are lifted.",
+    description: "The Joint Comprehensive Plan of Action (JCPOA) was agreed on July 14, 2015 between Iran and the P5+1 (U.S., UK, France, Germany, Russia, China). Under the deal, Iran agreed to: reduce its uranium stockpile from 10,000 kg to 300 kg; limit enrichment to 3.67%; reduce centrifuges from 19,000 to 6,104; redesign the Arak reactor to not produce weapons-grade plutonium; and accept intrusive IAEA inspections including 24/7 cameras at nuclear sites. In return, all UN, U.S., and EU nuclear-related sanctions were lifted. Iran received approximately $100 billion in previously frozen assets.",
+    context: "The JCPOA was widely considered a landmark achievement of multilateral diplomacy. The IAEA verified Iran's compliance. However, it was fiercely opposed by Israeli Prime Minister Netanyahu, who addressed the U.S. Congress to argue against it, and by Republican members of Congress. It left Iran's ballistic missile program and regional activities untouched — a deliberate choice that opponents considered a fatal flaw.",
+    facts: [
+      "Iran reduced its enriched uranium stockpile by 98% — from ~10,000 kg to 300 kg",
+      "The IAEA deployed the most intrusive inspection regime ever applied to any country",
+      "The deal did not address Iran's ballistic missiles or regional proxy activities",
+      "Netanyahu called it a 'historic mistake' in an unprecedented address to the U.S. Congress",
+      "Iran received approximately $100–150 billion in previously frozen assets upon implementation"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Joint Comprehensive Plan of Action (JCPOA)", url: "https://en.wikipedia.org/wiki/Joint_Comprehensive_Plan_of_Action" },
+      { source: "Arms Control Association", title: "The JCPOA at a Glance", url: "https://www.armscontrol.org/factsheets/iran-nuclear-agreement-at-a-glance" },
+      { source: "BBC", title: "Iran nuclear deal: What was agreed and what happened?", url: "https://www.bbc.com/news/world-middle-east-33521655" },
+      { source: "The Atlantic Council", title: "How the JCPOA was made — insider account", url: "https://www.atlanticcouncil.org/programs/middle-east-programs/iran-initiative/" }
+    ]
+  },
+
+  // ── ERA 5 ──
+  {
+    era: 5, eraYears: "2018–2020", eraTitle: "Maximum Pressure",
+    eraDesc: "Trump withdraws from the JCPOA and launches 'maximum pressure' — the most severe sanctions in history. Iran retaliates. The two sides reach the brink of war.",
+    date: "May 8, 2018", tag: "diplomacy", impact: "high",
+    title: "Trump withdraws the U.S. from the JCPOA",
+    actor: "U.S. reversal", actorColor: "#4e8ecb",
+    summary: "President Trump unilaterally withdraws from the Iran nuclear deal, calling it 'the worst deal ever negotiated,' and reimposed all sanctions.",
+    description: "President Trump announced U.S. withdrawal from the JCPOA on May 8, 2018 — against the unanimous recommendation of European allies who called it a working agreement. He reimposed all previously lifted sanctions and added hundreds of new ones in the most comprehensive sanctions campaign in history. The 'maximum pressure' strategy aimed to force Iran into a broader negotiation covering ballistic missiles, regional behavior, and a permanent nuclear constraint. Iran initially remained in the deal, but European partners were unable to compensate Iran for U.S. sanctions through their INSTEX mechanism.",
+    context: "The withdrawal fundamentally changed the geopolitical equation. Iran, faced with a collapsing economy and no economic benefit from the deal, began gradually exceeding JCPOA limits starting in 2019. By 2021, Iran was enriching uranium to 60% — a level far beyond any civilian justification. The U.S. also found itself isolated from its European allies who wanted to preserve the deal.",
+    facts: [
+      "European leaders including Macron, Merkel, and May personally lobbied Trump to stay in the deal",
+      "The U.S. Treasury Department imposed over 1,500 new Iran-related sanctions in 2018 alone",
+      "Iran's oil exports dropped from ~2.5 million barrels/day to under 500,000 barrels/day",
+      "The European INSTEX mechanism to help Iran trade without dollars never became operational at scale"
+    ],
+    links: [
+      { source: "Wikipedia", title: "United States withdrawal from the JCPOA", url: "https://en.wikipedia.org/wiki/United_States_withdrawal_from_the_Joint_Comprehensive_Plan_of_Action" },
+      { source: "The Guardian", title: "Trump withdraws from Iran nuclear deal: what does it mean?", url: "https://www.theguardian.com/world/2018/may/08/trump-withdraws-from-iran-nuclear-deal-what-does-it-mean" },
+      { source: "Brookings", title: "Trump and the Iran nuclear deal: Maximizing pressure or maximizing risk?", url: "https://www.brookings.edu/articles/trump-and-iran/" }
+    ]
+  },
+  {
+    era: 5, date: "Jun–Jul 2019", tag: "military", impact: "high",
+    title: "Gulf tanker attacks & near-war — Trump halts airstrike",
+    actor: "Both sides — near military conflict", actorColor: "#c0392b",
+    summary: "Iran shoots down a U.S. surveillance drone. Trump approves retaliatory airstrikes — then calls them off 10 minutes before launch, saying 150 deaths wasn't proportionate.",
+    description: "In June 2019, a series of oil tanker attacks near the Strait of Hormuz were attributed by the U.S. to Iran. On June 20, Iran shot down a U.S. Navy RQ-4A Global Hawk surveillance drone, claiming it had violated Iranian airspace. Trump approved retaliatory military strikes on three Iranian radar and missile sites. With aircraft and ships in position and 10 minutes until the attacks began, Trump called them off — later saying he had asked how many Iranians would die, been told approximately 150, and decided this was not proportionate for a drone.",
+    context: "The near-war moment revealed both the danger and the residual restraint on both sides. Iran wanted to demonstrate it would retaliate but also did not want a full-scale war. Trump wanted to show strength but appeared to recoil from the human cost. The episode showed how miscalculation could tip the situation toward catastrophe.",
+    facts: [
+      "The Global Hawk drone cost approximately $130 million",
+      "Iran claimed the drone was in Iranian airspace; the U.S. said it was over international waters",
+      "Trump tweeted about calling off the strikes at 'approximately 10 minutes' before launch",
+      "Iran also seized a British-flagged oil tanker in the Strait of Hormuz days later"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2019 Gulf of Oman tanker attacks", url: "https://en.wikipedia.org/wiki/2019_Gulf_of_Oman_tanker_attacks" },
+      { source: "The New York Times", title: "Trump Says He Stopped Airstrike on Iran to Avoid Casualties", url: "https://www.nytimes.com/2019/06/21/us/politics/trump-iran-strike.html" },
+      { source: "BBC", title: "US-Iran tensions: How close to war?", url: "https://www.bbc.com/news/world-middle-east-48719898" }
+    ]
+  },
+  {
+    era: 5, date: "Jan 3, 2020", tag: "military", impact: "high",
+    title: "Assassination of General Qasem Soleimani",
+    actor: "U.S. drone strike; Iran retaliates", actorColor: "#c0392b",
+    summary: "Trump orders a drone strike killing Iran's most powerful military figure. Iran fires 22 ballistic missiles at U.S. bases in Iraq — and accidentally shoots down a Ukrainian airliner.",
+    description: "U.S. forces killed IRGC Quds Force commander Major General Qasem Soleimani and Iraqi militia leader Abu Mahdi al-Muhandis in a drone strike near Baghdad International Airport on January 3, 2020. Soleimani was the architect of Iran's regional power projection — the man who had built and coordinated Iran's network of proxy forces across Iraq, Syria, Lebanon, and Yemen. The U.S. said it acted to prevent 'imminent attacks' on Americans. Iran called it an act of terrorism and war.",
+    context: "Iran's retaliation came on January 8: 22 ballistic missiles were fired at Ain Assad and Erbil airbases in Iraq. No Americans were killed in the strikes, but 110 U.S. service members later received diagnosis of traumatic brain injuries. Hours after the missile attack, as Iran's air defenses were on maximum alert, the Islamic Revolutionary Guard Corps accidentally shot down Ukraine International Airlines Flight 752 shortly after takeoff from Tehran, killing all 176 people on board — 82 of them Iranian citizens.",
+    facts: [
+      "Soleimani was considered the second most powerful person in Iran after Supreme Leader Khamenei",
+      "Iran fired 22 Fateh-313 and Qiam ballistic missiles at U.S. airbases — the largest Iranian ballistic missile attack ever",
+      "110 U.S. troops were later diagnosed with traumatic brain injuries from the attack",
+      "Ukraine International Airlines Flight 752 was shot down by an IRGC missile minutes after takeoff, killing 176 people; Iran initially denied responsibility before admitting it three days later",
+      "Iran issued an arrest warrant for Trump and asked Interpol to issue a red notice — Interpol declined"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Assassination of Qasem Soleimani", url: "https://en.wikipedia.org/wiki/Assassination_of_Qasem_Soleimani" },
+      { source: "Wikipedia", title: "Ukraine International Airlines Flight 752 shootdown", url: "https://en.wikipedia.org/wiki/Ukraine_International_Airlines_Flight_752" },
+      { source: "The Guardian", title: "Qasem Soleimani: the US general who killed Iran's most powerful commander", url: "https://www.theguardian.com/world/2020/jan/03/qasem-soleimani-who-was-the-iranian-commander-killed-in-the-us-strike" },
+      { source: "NPR", title: "What We Know About The U.S. Strike That Killed Qasem Soleimani", url: "https://www.npr.org/2020/01/03/793364307/what-we-know-about-the-u-s-strike-that-killed-iranian-general-qasem-soleimani" }
+    ]
+  },
+
+  // ── ERA 6 ──
+  {
+    era: 6, eraYears: "2021–2026", eraTitle: "Maximum Pressure to Active War",
+    eraDesc: "Trump relaunches maximum pressure. Four rounds of nuclear talks collapse. Israel launches the Twelve-Day War in June 2025 destroying Iran's nuclear sites. Iran's economy collapses; mass protests erupt. On Feb 28, 2026, the U.S. and Israel launch Operation Epic Fury — killing Khamenei. An active regional war is now underway.",
+    date: "Apr 2021–Aug 2022", tag: "diplomacy", impact: "mid",
+    title: "Vienna JCPOA revival talks collapse",
+    actor: "Diplomacy stalls", actorColor: "#4e8ecb",
+    summary: "Indirect U.S.–Iran talks in Vienna come close to a new nuclear deal — but collapse over Iranian demands and domestic political pressures on both sides.",
+    description: "The Biden administration, reversing Trump's withdrawal, entered indirect negotiations with Iran in Vienna beginning in April 2021 — the parties were too far apart for direct talks, so European intermediaries shuttled between delegations in the same hotel. By summer 2022, a deal was reportedly within reach, with the text almost complete. But the talks collapsed over Iran's demand to remove the IRGC from the U.S. Foreign Terrorist Organization list and disputes over verification. Iran's election of hardliner Ebrahim Raisi as president in 2021 further complicated matters.",
+    context: "The failure to revive the JCPOA had concrete consequences: Iran continued advancing its nuclear program, enriching uranium to 60% purity (weapons grade is 90%), installing faster centrifuges, and reducing IAEA inspector access. By 2023, the IAEA reported Iran had enough enriched uranium for several nuclear weapons if further enriched.",
+    facts: [
+      "Eight rounds of Vienna talks were held between April 2021 and August 2022",
+      "Iran enriched uranium to 60% by April 2021 — its highest level ever, close to weapons-grade (90%)",
+      "Iran restricted IAEA inspector access and removed surveillance cameras from nuclear sites in 2022",
+      "By 2023, the IAEA estimated Iran had enough 60%-enriched uranium for approximately 3 nuclear devices"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Vienna talks on Iran nuclear deal (2021–22)", url: "https://en.wikipedia.org/wiki/Vienna_talks_(2021%E2%80%9322)" },
+      { source: "Reuters", title: "Iran nuclear talks: what's at stake", url: "https://www.reuters.com/world/middle-east/iran-nuclear-talks-what-stake-2022-02-08/" },
+      { source: "BBC", title: "Iran nuclear deal: How close is Iran to a nuclear weapon?", url: "https://www.bbc.com/news/world-middle-east-54918034" }
+    ]
+  },
+  {
+    era: 6, date: "Oct 7, 2023 – ongoing", tag: "proxy", impact: "high",
+    title: "Hamas attack & Iran's 'Axis of Resistance' activates",
+    actor: "Iran's proxy network", actorColor: "#9b59b6",
+    summary: "The Hamas October 7 attack on Israel triggers Iran's entire proxy network: Hezbollah, Houthis, and Iraqi militias all enter the conflict. U.S. forces are repeatedly attacked.",
+    description: "The October 7, 2023 Hamas attack on Israel — in which ~1,200 Israelis were killed and 251 taken hostage — brought intense scrutiny to Iran's role as Hamas's primary funder, weapons supplier, and ideological patron. Iran denied directing the attack but celebrated it. Within days, Hezbollah opened a northern front against Israel from Lebanon. Houthi forces in Yemen began firing ballistic missiles and drones at Israel and attacking Red Sea commercial shipping. Iraqi militia groups backed by Iran's IRGC repeatedly attacked U.S. forces in Iraq and Syria. A Houthi drone attack killed three U.S. soldiers at a Jordan base in January 2024.",
+    context: "The simultaneous activation of Iran's proxy network — Hamas, Hezbollah, Houthis, Iraqi militias — showed the sophistication and reach of what Tehran calls the 'Axis of Resistance.' The U.S. found itself defending its personnel and allies on multiple fronts while trying to prevent the conflict from escalating into a direct U.S.–Iran war.",
+    facts: [
+      "U.S. forces in Iraq and Syria were attacked over 160 times by Iran-backed militias between October 2023 and March 2024",
+      "Three U.S. soldiers were killed in a drone attack at Tower 22 in Jordan, attributed to Iran-backed Kataib Hezbollah (Jan 28, 2024)",
+      "Houthi attacks disrupted Red Sea shipping lanes used by ~15% of global trade, forcing major shipping companies to reroute around Africa",
+      "The U.S. and UK launched strikes against Houthi targets in Yemen beginning January 2024",
+      "Iran denied ordering the October 7 attack but said it was 'proud' of the Palestinian resistance"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2023 Hamas attack on Israel", url: "https://en.wikipedia.org/wiki/2023_Hamas-led_attack_on_Israel" },
+      { source: "Wikipedia", title: "Axis of Resistance", url: "https://en.wikipedia.org/wiki/Axis_of_resistance" },
+      { source: "The Guardian", title: "Iran's proxy forces: who they are and what they want", url: "https://www.theguardian.com/world/2024/jan/30/irans-proxy-forces-who-they-are-and-what-they-want" },
+      { source: "BBC", title: "Houthi attacks on Red Sea shipping explained", url: "https://www.bbc.com/news/world-middle-east-67614911" }
+    ]
+  },
+  {
+    era: 6, date: "Apr 1–19, 2024", tag: "military", impact: "high",
+    title: "Iran and Israel exchange direct strikes — a historic first",
+    actor: "Direct Iran–Israel confrontation", actorColor: "#c0392b",
+    summary: "For the first time in history, Iran fires over 300 drones and missiles directly at Israel. Israel retaliates with a strike inside Iran. The two countries are now in direct conflict.",
+    description: "On April 1, 2024, Israel killed seven IRGC officers in a strike on the Iranian consulate building in Damascus, Syria — a major escalation that Iran said it was obliged to respond to. On the night of April 13–14, Iran launched its first-ever direct military attack on Israel: 170 drones, 30 cruise missiles, and 120 ballistic missiles. Israel, supported by the U.S., UK, Jordan, and France, intercepted over 99% of the projectiles. On April 19, Israel retaliated with a drone strike near Isfahan, Iran — targeting an air defense radar in a deliberately limited strike. Iran initially denied any attack had occurred.",
+    context: "The April 2024 exchange marked a fundamental transformation of the conflict. For 45 years, Iran and Israel had fought exclusively through proxies and covert operations. Now they had directly exchanged fire. Both sides appeared to deliberately limit the exchanges to avoid a full-scale war, but the precedent was set: the threshold for direct confrontation had been crossed.",
+    facts: [
+      "Iran fired 170 drones, 30 cruise missiles, and 120+ ballistic missiles — the largest drone/missile barrage in Middle East history",
+      "Over 99% of projectiles were intercepted by the combined U.S., Israeli, British, Jordanian, and French defense systems",
+      "Israel's retaliatory drone strike targeted air defense systems near Isfahan, home to key nuclear facilities",
+      "Iran initially claimed its air defenses had 'shot down' the Israeli drones and denied any damage",
+      "It was the first time Iran had launched a direct military attack on Israel in the two countries' histories"
+    ],
+    links: [
+      { source: "Wikipedia", title: "April 2024 Iranian strikes on Israel", url: "https://en.wikipedia.org/wiki/April_2024_Iranian_strikes_on_Israel" },
+      { source: "BBC", title: "What happened when Iran attacked Israel directly?", url: "https://www.bbc.com/news/world-middle-east-68788205" },
+      { source: "AP News", title: "How the Iran–Israel exchange unfolded", url: "https://apnews.com/article/israel-iran-attack-strike-explainer-6c9e74cf8efb6de8fa4d5e85cd3c3b08" },
+      { source: "The New York Times", title: "Iran Attacks Israel Directly for First Time", url: "https://www.nytimes.com/2024/04/13/world/middleeast/iran-attack-israel.html" }
+    ]
+  },
+  // ── ERA 6: DAILY BREAKDOWN ──
+  {
+    era: 6, date: "Jan 20, 2025", tag: "sanctions", impact: "mid",
+    title: "Trump returns to office — maximum pressure relaunched",
+    actor: "U.S. escalates sanctions", actorColor: "#c88b2a",
+    summary: "Trump's first day back: executive orders restore all Iran sanctions, target oil exports, and warn nations against buying Iranian crude.",
+    description: "On his first day back in office, President Trump signed executive orders reimposing the full 'maximum pressure' campaign against Iran. New orders targeted Iranian oil exports, threatened secondary sanctions against any country purchasing Iranian crude (aimed especially at China), and froze Iranian government assets. Trump also sent a letter to Supreme Leader Khamenei warning of military consequences if Iran acquired a nuclear weapon.",
+    context: "Iran entered 2025 with its economy under severe strain — the rial at record lows, inflation above 40%, and oil exports almost entirely dependent on China buying at a discount. Iran's nuclear program had advanced dramatically: enrichment to 60%, enough fissile material for several bombs if brought to weapons-grade, and centrifuge arrays the JCPOA never anticipated.",
+    facts: [
+      "Iran's rial had lost over 90% of its value since Trump's first withdrawal from the JCPOA in 2018",
+      "Iran was enriching uranium to 60% purity — weapons-grade is 90%; breakout time estimated at under two weeks",
+      "The IAEA reported an unprecedented 274 kg stockpile of 60%-enriched uranium by end of 2024",
+      "Trump sent a personal letter to Khamenei warning of consequences — the first such direct communication in years"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Iran–United States relations 2025", url: "https://en.wikipedia.org/wiki/Iran%E2%80%93United_States_relations" },
+      { source: "PBS NewsHour", title: "Timeline of tensions over Iran's nuclear program", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" },
+      { source: "Arms Control Association", title: "Iran nuclear timeline 2025", url: "https://www.armscontrol.org/factsheets/iran-nuclear-agreement-at-a-glance" }
+    ]
+  },
+  {
+    era: 6, date: "Jan 29, 2025", tag: "diplomacy", impact: "mid",
+    title: "EU designates IRGC as terrorist organization",
+    actor: "European escalation", actorColor: "#4e8ecb",
+    summary: "The European Union formally designates Iran's Islamic Revolutionary Guard Corps as a terrorist organization. Iran responds in kind, labeling EU armed forces terrorists.",
+    description: "The European Union formally designated the Islamic Revolutionary Guard Corps (IRGC) as a terrorist organization — a step the EU had long resisted. The designation aligned the EU with the U.S. and UK positions. Iran immediately responded by passing legislation designating the armed forces of all EU member states as terrorist organizations — a largely symbolic move but one that further inflamed relations.",
+    context: "The EU had previously avoided the IRGC terrorist designation to preserve diplomatic channels. Its adoption signaled that European patience with Iran's regional behavior and nuclear program had run out, and aligned the West more closely ahead of the coming pressure campaign.",
+    facts: [
+      "The U.S. had designated the IRGC as a foreign terrorist organization in 2019",
+      "The UK had done the same in 2023",
+      "Iran's counter-designation of EU armed forces was the first time it had applied such a label to Western nations' militaries",
+      "The IRGC controls vast portions of Iran's economy and its regional proxy network"
+    ],
+    links: [
+      { source: "PBS NewsHour", title: "Timeline of Iran nuclear tensions", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" },
+      { source: "Reuters", title: "EU designates Iran's IRGC as terrorist organization", url: "https://www.reuters.com/world/europe/eu-designates-irans-irgc-terrorist-organization-2025-01-30/" }
+    ]
+  },
+  {
+    era: 6, date: "Feb 3, 2025", tag: "diplomacy", impact: "mid",
+    title: "Trump confirms Iran talks are happening — amid drone incident",
+    actor: "Both sides — back-channel contact", actorColor: "#4e8ecb",
+    summary: "Trump tells reporters the U.S. and Iran are talking — even as the U.S. military shoots down an Iranian drone approaching an aircraft carrier in the Arabian Sea.",
+    description: "Trump announced to reporters that negotiations with Iran were underway. The same day, the U.S. military shot down an Iranian drone that had approached the USS Carl Vinson carrier strike group in the Arabian Sea. The juxtaposition — diplomatic signals and military incidents happening simultaneously — captured the dangerous ambiguity of the period. Iran and the U.S. confirmed on February 4 that formal talks would be held in Oman.",
+    context: "The talks were the first direct U.S.–Iran engagement since Trump's first term. Both sides had significant domestic political audiences to manage. Iran needed economic relief; Trump needed a deal that could be sold as stronger than Obama's JCPOA.",
+    facts: [
+      "The drone incident occurred in the same week Trump confirmed talks — showing both engagement and military posturing",
+      "Oman served as the mediator, as it has in most U.S.–Iran back-channel contacts since 2012",
+      "Trump said Iran had 'reached out' to begin talks",
+      "Iran's inflation was running above 40%; the rial had hit a record low in December 2024"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" },
+      { source: "PBS NewsHour", title: "Iran nuclear talks timeline", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" }
+    ]
+  },
+  {
+    era: 6, date: "Feb 20, 2025", tag: "military", impact: "high",
+    title: "Trump gives Iran a 10-day ultimatum: deal or be attacked",
+    actor: "U.S. ultimatum", actorColor: "#c0392b",
+    summary: "Trump publicly gives Iran 10 days to reach a nuclear deal or face U.S. military strikes. Iran's oil minister says Iran might sell oil to America if a deal is reached.",
+    description: "In a dramatic escalation of rhetoric, Trump publicly announced that Iran had 10 days to agree to a deal or face a U.S. military attack. He also began a massive military buildup in the region — the largest U.S. military deployment to the Middle East since the 2003 Iraq invasion, including additional carrier strike groups, B-2 stealth bombers, and 50,000 troops at regional bases. Iran's oil minister responded that Iran would consider selling oil to the United States if a nuclear deal was reached.",
+    context: "The 10-day ultimatum was controversial — critics said it gave Iran no time to genuinely respond and was designed to justify military action. Supporters said it was necessary to force Iran to make a decision. Iran's foreign minister said a deal was 'within reach' on February 25 — but talks continued without resolution.",
+    facts: [
+      "The U.S. assembled its largest Middle East air presence since the 2003 Iraq invasion",
+      "B-2 stealth bombers, capable of striking hardened underground nuclear facilities, were deployed to the region",
+      "Iran's Foreign Minister Araghchi called a deal 'within reach' ahead of Geneva talks",
+      "Iran held 460 kg of 60%-enriched uranium at this point — enough for approximately 11 nuclear bombs if further enriched"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" },
+      { source: "Iran International", title: "Tehran braces for war while testing diplomacy", url: "https://www.iranintl.com/en/202601309750" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 15, 2025", tag: "military", impact: "mid",
+    title: "Trump launches major airstrikes on Houthis in Yemen",
+    actor: "U.S. military strikes", actorColor: "#c0392b",
+    summary: "The U.S. launches the most intense strikes against Houthi rebels in Yemen — Iran's last active proxy capable of daily attacks — in an effort to degrade Iran's regional leverage.",
+    description: "Trump ordered the most sustained U.S. bombing campaign against Houthi rebels in Yemen since the conflict began. The strikes targeted Houthi missile launchers, drone facilities, command centers, and leadership. The operation was framed as dismantling Iran's 'Axis of Resistance' — destroying the proxy network before any confrontation with Iran itself. The Houthis had been the only remaining Iran-backed actor still conducting daily attacks on Red Sea shipping and periodically on Israel.",
+    context: "By destroying Iran's proxy assets first, the U.S. and Israel aimed to reduce Iran's ability to retaliate through proxies if direct strikes on Iran were ordered. This was strategic preparation for the possibility of direct military action.",
+    facts: [
+      "Houthi rebels had been attacking Red Sea shipping since November 2023, disrupting 15% of global trade",
+      "The Houthis had fired over 100 drones and ballistic missiles at Israel between October 2023 and March 2025",
+      "The operation was codenamed as part of broader Middle East deterrence efforts",
+      "Iran condemned the strikes as an act of aggression against Yemen's sovereignty"
+    ],
+    links: [
+      { source: "PBS NewsHour", title: "Iran nuclear tensions timeline", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" },
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" }
+    ]
+  },
+  {
+    era: 6, date: "Apr 12, 2025", tag: "diplomacy", impact: "high",
+    title: "Round 1 of nuclear talks — Muscat, Oman",
+    actor: "First direct U.S.–Iran talks in years", actorColor: "#4e8ecb",
+    summary: "The first round of nuclear negotiations begins in Muscat. U.S. envoy Witkoff and Iran's Foreign Minister Araghchi hold indirect talks — then briefly meet face to face.",
+    description: "The first round of high-level U.S.–Iran nuclear negotiations was held at the Al Alam Palace in Muscat, Oman on April 12, 2025. U.S. Special Envoy Steve Witkoff and Iranian Foreign Minister Abbas Araghchi led their respective delegations, which were in separate rooms with messages relayed through Omani mediators. At the conclusion of talks, Witkoff and Araghchi briefly spoke in person — a historically significant moment. Both sides described the discussions as 'constructive.'",
+    context: "Iran proposed a three-step plan: temporarily lower enrichment to 3.67% for sanctions relief; then permanently halt high-level enrichment and restore IAEA inspections; and commit to the Additional Protocol for surprise inspections. The U.S. wanted zero enrichment. The gap between the positions was wide.",
+    facts: [
+      "The talks were the first high-level U.S.–Iran nuclear negotiations since the JCPOA era",
+      "Iran and the U.S. were in separate rooms — Oman relayed messages between delegations",
+      "Iran's three-step proposal included a temporary return to 3.67% enrichment in exchange for sanctions relief",
+      "The U.S. demanded zero enrichment — Iran called this a violation of its NPT rights"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" },
+      { source: "PBS NewsHour", title: "Timeline of Iran nuclear talks", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" }
+    ]
+  },
+  {
+    era: 6, date: "Apr 19 – May 26, 2025", tag: "diplomacy", impact: "mid",
+    title: "Rounds 2–4 of talks collapse — deal slips away",
+    actor: "Diplomacy falters", actorColor: "#4e8ecb",
+    summary: "Three more rounds of talks in Rome and Muscat fail to bridge the gap. Round 4 in Rome is postponed and never rescheduled. Iran unveils a new ballistic missile as a warning.",
+    description: "The second round of talks in Rome (April 19), third round in Muscat (April 26), and planned fourth round in Rome were held or attempted amid rising tensions. Iran and the U.S. disagreed fundamentally: Iran insisted on its right to enrich; the U.S. demanded zero enrichment as a baseline. Iran unveiled a new long-range ballistic missile during the talks period — a clear warning. IRGC commander General Salami threatened to 'open hell gates on invaders.' The fourth round, scheduled for May 3 in Rome, was postponed indefinitely by Iran, citing U.S. 'contradictory behavior and provocative statements.'",
+    context: "Analysts noted that U.S. envoy Witkoff may have misunderstood or misrepresented Iranian proposals during negotiations — including Iran's offer to suspend enrichment for several years and its proposal to build 19 civilian nuclear reactors using U.S. contracts, which Iran hoped could revive the American nuclear industry.",
+    facts: [
+      "Iran offered to build 19 civilian nuclear reactors using U.S. contracts — a proposal Witkoff reportedly did not fully understand",
+      "Iran's IRGC chief threatened 'hell gates' against any invaders",
+      "The IAEA reported on May 31 that Iran had amassed a record stockpile of military-grade enriched uranium",
+      "On June 11, U.S. embassies in Iraq began evacuating personnel in anticipation of conflict"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" },
+      { source: "PBS NewsHour", title: "Iran nuclear talks timeline", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" }
+    ]
+  },
+  {
+    era: 6, date: "Jun 12–13, 2025", tag: "nuclear", impact: "high",
+    title: "IAEA declares Iran in breach — Israel launches the Twelve-Day War",
+    actor: "Israel strikes Iran", actorColor: "#c0392b",
+    summary: "The IAEA formally declares Iran in violation of the NPT. The next day, Israel launches massive airstrikes on Iran's nuclear sites, military leadership, and top scientists.",
+    description: "On June 12, 2025, the IAEA Board of Governors declared Iran in breach of its non-proliferation obligations — paving the way for UN Security Council action. The following day, June 13, Israel launched what became known as the Twelve-Day War: massive airstrikes on Iran's nuclear facilities, top military leadership, and nuclear scientists. The attacks were unprecedented in scope. Iran immediately pulled out of nuclear talks and began retaliatory strikes.",
+    context: "The U.S. joined Israel in strikes on Iranian nuclear sites — B-2 stealth bombers dropped GBU-57 Massive Ordnance Penetrator bunker-busters on the underground Fordow and Natanz facilities. U.S. submarines launched Tomahawk missiles at nuclear infrastructure in Isfahan. The combination of conventional and bunker-buster strikes was designed to permanently destroy Iran's nuclear capability.",
+    facts: [
+      "B-2 stealth bombers deployed GBU-57 'Massive Ordnance Penetrators' — the only U.S. weapons capable of destroying Fordow's underground chambers",
+      "The Twelve-Day War lasted from June 13 to June 23, 2025",
+      "Supreme Leader Khamenei's son Mojtaba Khamenei was positioned to be successor amid fears Khamenei himself might be targeted",
+      "Iran launched 180 ballistic missiles at Israel in retaliation — Israel's air defenses intercepted most"
+    ],
+    links: [
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" },
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" }
+    ]
+  },
+  {
+    era: 6, date: "Jun 23, 2025", tag: "diplomacy", impact: "high",
+    title: "Ceasefire — Twelve-Day War ends",
+    actor: "U.S.-brokered truce", actorColor: "#4e8ecb",
+    summary: "Trump announces Iran and Israel have agreed to a 'complete and total' ceasefire after 12 days of the most intense Middle East airstrikes since the Gulf War.",
+    description: "On June 23, 2025, President Trump announced that Iran and Israel had agreed to a ceasefire. The 12-day war had seen Israel strike Iran's nuclear facilities, kill dozens of military and scientific leaders, and target missile production. Iran had retaliated with hundreds of ballistic missiles and drones against Israel and U.S. regional bases. The ceasefire was fragile: Iran said it would reassess its cooperation with the IAEA. Top Iranian officials estimated 1,500 executed in the crackdown on dissent that followed. The Iranian rial collapsed further.",
+    context: "The Twelve-Day War set back Iran's nuclear program significantly but did not destroy it entirely. Iran retained enrichment knowledge and some undamaged facilities. The war also triggered the largest crackdown on domestic dissent Iran had seen in years, with an estimated 21,000 people arrested in the weeks following the strikes.",
+    facts: [
+      "The Twelve-Day War was the most intense military exchange between Iran and Israel in history",
+      "28 people were killed in Israel; Iranian authorities acknowledged significant damage to nuclear facilities",
+      "Iran's Assembly of Experts began deliberations over Khamenei's succession",
+      "Iran arrested an estimated 21,000 people in the weeks following the war"
+    ],
+    links: [
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" },
+      { source: "House of Commons Library", title: "What challenges does Iran face in 2026?", url: "https://commonslibrary.parliament.uk/research-briefings/cbp-10456/" }
+    ]
+  },
+  {
+    era: 6, date: "Dec 28, 2025", tag: "diplomacy", impact: "high",
+    title: "Iran's currency collapses — nationwide protests erupt",
+    actor: "Iranian domestic crisis", actorColor: "#c88b2a",
+    summary: "The Iranian rial hits 1.42 million to the dollar. Protests over economic collapse spread to all 31 provinces — the largest since the 1979 Revolution.",
+    description: "On December 28, 2025, protests broke out in two major markets in downtown Tehran after the Iranian rial plunged to a record low of 1.42 million rials to the U.S. dollar. The currency collapse, driven by U.S. sanctions and the economic aftermath of the June 2025 war, compounded rampant inflation and pushed food prices beyond the reach of ordinary Iranians. Within days, protests had spread to all 31 provinces — the largest nationwide demonstrations since the 1979 Islamic Revolution.",
+    context: "The protests quickly shifted from economic grievances to political demands: crowds chanted against the Islamic Republic itself, calling for regime change. Khamenei described the protesters as 'rioters' on January 3, 2026 — seen as a green light for security forces to use lethal force. The government imposed internet blackouts to prevent coordination and communication with the outside world.",
+    facts: [
+      "The rial reached 1.42 million per U.S. dollar — a record low and a 95%+ decline since 2018",
+      "Protests were recorded in all 31 of Iran's provinces within days",
+      "On January 8, 2026, a mass of people took to the streets following a call from Iran's exiled crown prince",
+      "The government imposed complete internet and phone blackouts to isolate the population"
+    ],
+    links: [
+      { source: "PBS NewsHour", title: "Timeline of Iran nuclear tensions", url: "https://www.pbs.org/newshour/world/a-timeline-of-tensions-over-irans-nuclear-program-as-talks-with-u-s-approach" },
+      { source: "House of Commons Library", title: "Iran in 2026: challenges and crises", url: "https://commonslibrary.parliament.uk/research-briefings/cbp-10456/" }
+    ]
+  },
+  {
+    era: 6, date: "Feb 6 – Feb 27, 2026", tag: "diplomacy", impact: "high",
+    title: "Round 2 of nuclear talks — Geneva; deal reportedly within reach",
+    actor: "Last-chance diplomacy", actorColor: "#4e8ecb",
+    summary: "A second round of U.S.–Iran negotiations opens in Geneva. On Feb 27, Oman's foreign minister says a 'breakthrough' has been reached — Iran agreed to permanently downgrade its uranium. The next day, the U.S. and Israel attack.",
+    description: "A second round of nuclear negotiations resumed in February 2026 in Geneva, driven by Iran's massive domestic protests and the U.S. military buildup. The talks were described as the most serious since the JCPOA. On February 20, Trump gave Iran a 10-day ultimatum: reach a deal or face attack. Iran's Foreign Minister Araghchi called a deal 'historic' and 'within reach.' On February 25, UK National Security Adviser Jonathan Powell secretly attended the Geneva talks. On February 27, Oman's Foreign Minister Al-Busaidi announced a 'breakthrough' — Iran had agreed never to stockpile enriched uranium and to full IAEA verification. Peace was described as 'within reach.' Talks were due to resume March 2.",
+    context: "The February 27 breakthrough announcement makes what happened next all the more controversial. Just hours after Al-Busaidi declared a deal was imminent, U.S. envoy Witkoff gave a contradictory account — saying Iran had 'boasted' about its enriched uranium stockpile and rejected zero enrichment. Diplomats said Witkoff misrepresented the final exchange. The following morning, the United States and Israel attacked.",
+    facts: [
+      "UK National Security Adviser Jonathan Powell secretly attended the Geneva nuclear talks",
+      "Oman's foreign minister announced a 'breakthrough' on Feb 27 — Iran had agreed to full IAEA verification and no stockpiling",
+      "Talks were scheduled to resume March 2 — they never happened",
+      "U.S. envoy Witkoff's account of the final Iranian position was disputed by other diplomats"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%932026_Iran%E2%80%93United_States_negotiations" },
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" }
+    ]
+  },
+  {
+    era: 6, date: "Feb 28, 2026", tag: "military", impact: "high",
+    title: "Operation Epic Fury — U.S. and Israel launch war on Iran",
+    actor: "U.S.–Israel joint attack kills Khamenei", actorColor: "#c0392b",
+    summary: "Combined U.S.–Israeli strikes begin at dawn. Supreme Leader Ayatollah Khamenei is killed. B-2 bombers destroy Fordow and Natanz. Iran closes the Strait of Hormuz. A regional war begins.",
+    description: "At 06:35 UTC on February 28, 2026, CENTCOM announced that U.S. and partner forces had begun airstrikes across Iran — codenamed Operation Epic Fury. B-2 stealth bombers deployed GBU-57 Massive Ordnance Penetrator bunker-buster bombs on the underground Fordow and Natanz nuclear facilities. U.S. submarines launched Tomahawk cruise missiles at nuclear infrastructure in Isfahan. Simultaneously, at 06:45 UTC, Israel launched decapitation strikes. Supreme Leader Ayatollah Ali Khamenei was killed along with several senior officials at his residential compound in Tehran. Iran immediately began retaliatory missile and drone strikes against Israel, U.S. military facilities across the Middle East, and Gulf state infrastructure.",
+    context: "The decision to kill Khamenei in a decapitation strike went far beyond the June 2025 Twelve-Day War and shattered the previous rules of engagement. Critics called it an act of war with no legal authorization. The Trump administration offered conflicting justifications: preventing an imminent attack, pre-empting Iranian nuclear capability, achieving regime change, and securing Iran's oil resources. The UN Secretary-General condemned the strikes. The Strait of Hormuz — through which 20% of the world's oil passes — was immediately closed by Iran.",
+    facts: [
+      "Khamenei was killed alongside family members and senior officials at his residential compound",
+      "B-2 bombers dropped GBU-57 Massive Ordnance Penetrators — 30,000 lb bunker-busters capable of destroying underground bunkers 60 meters deep",
+      "Iran fired over 500 ballistic missiles and nearly 2,000 drones in the first five days of retaliation",
+      "Iran closed the Strait of Hormuz — triggering the largest global energy shock since the 1970s oil crisis",
+      "The IEA released 400 million barrels from strategic reserves as oil prices surged past $100/barrel",
+      "Oman's foreign minister said the attack 'undermined active and serious negotiations'"
+    ],
+    links: [
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" },
+      { source: "Wikipedia", title: "Timeline of the 2026 Iran war", url: "https://en.wikipedia.org/wiki/Timeline_of_the_2026_Iran_war" },
+      { source: "ABC News", title: "Iran war timeline: 1 month of escalating strikes", url: "https://abcnews.com/Politics/trump-iran-war-timeline-conflict-nears-week-6/story?id=131662530" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 1, 2026", tag: "military", impact: "high",
+    title: "Day 2 — First U.S. soldiers killed; tankers hit in Hormuz",
+    actor: "Iran retaliates broadly", actorColor: "#c0392b",
+    summary: "Six American troops are killed in a drone strike on Kuwait. Commercial tankers are struck in the Strait of Hormuz for the first time. Hezbollah opens a new front from Lebanon.",
+    description: "On the first full day of war, March 1, six American troops were killed in an Iranian drone strike on a U.S. base in Port Shuaiba, Kuwait — the first U.S. personnel killed in the conflict. Three U.S. F-15 fighter jets were accidentally shot down by friendly fire from Kuwaiti air defenses in the confusion. The first commercial tankers were struck in the Strait of Hormuz. Hezbollah in Lebanon launched fresh rocket attacks into northern Israel, framing them as solidarity strikes. Iran's retaliation targeted U.S. facilities in Bahrain, Jordan, Kuwait, Qatar, Saudi Arabia, and the UAE simultaneously.",
+    context: "The scale and simultaneity of Iran's retaliation stunned observers. Rather than a measured response, Iran appeared to have pre-planned a broad regional war. Iran also struck THAAD missile defense radars in Jordan and Saudi Arabia — a deliberate effort to degrade the U.S. ability to intercept Iranian missiles in future strikes.",
+    facts: [
+      "Six U.S. soldiers killed — the first American combat deaths of the conflict",
+      "Three U.S. F-15s lost to friendly fire from Kuwaiti defenses amid communication failures",
+      "Iran struck U.S. facilities in six countries simultaneously on day one of retaliation",
+      "An Iranian drone hit the Crowne Plaza Hotel in Manama, Bahrain, causing fires",
+      "The IRGC claimed (falsely, per U.S. officials) to have struck the USS Abraham Lincoln carrier"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Timeline of the 2026 Iran war", url: "https://en.wikipedia.org/wiki/Timeline_of_the_2026_Iran_war" },
+      { source: "ABC News", title: "Iran war timeline — daily events", url: "https://abcnews.com/Politics/trump-iran-war-timeline-conflict-nears-week-6/story?id=131662530" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 2–7, 2026", tag: "military", impact: "high",
+    title: "Week 1 — Hezbollah strikes Israel; USS Dena sunk off Sri Lanka",
+    actor: "Expanding regional war", actorColor: "#c0392b",
+    summary: "Hezbollah launches sustained rocket attacks on northern Israel. A U.S. submarine sinks an Iranian Navy frigate off Sri Lanka — the first ship sunk in combat since the Falklands War.",
+    description: "In the first week of the war, Hezbollah launched intensified rocket barrages into northern Israel, framing them as solidarity strikes with Iran. Iran-aligned Kurdish armed groups began military operations into Iranian territory from Iraq. Qatar arrested ten IRGC operatives on its soil. QatarEnergy declared force majeure on gas exports and shut down liquefaction. Most significantly, the USS Charlotte (a U.S. submarine) sank the Iranian Navy frigate IRIS Dena off the coast of Galle, Sri Lanka — the vessel was returning from an international naval exercise in India and was unarmed. 104 Iranian sailors were killed. It was the first ship sunk by a submarine in active combat since the Falklands War in 1982.",
+    context: "The sinking of the IRIS Dena was internationally controversial — the ship had participated in a multinational naval exercise, carried no ammunition by agreement, and was in international waters far from the conflict zone. Critics said the U.S. likely knew the ship was defenseless. The incident drew condemnation from India and several other neutral nations.",
+    facts: [
+      "The IRIS Dena was returning from a multinational naval exercise in India, carrying no ammunition per exercise rules",
+      "104 Iranian sailors were killed; 32 rescued by Sri Lankan Navy",
+      "It was the first ship sunk by a submarine since HMS Conqueror sank the ARA General Belgrano during the Falklands War in 1982",
+      "QatarEnergy's force majeure cut Gulf LNG exports significantly, sending global gas prices surging"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Timeline of the 2026 Iran war", url: "https://en.wikipedia.org/wiki/Timeline_of_the_2026_Iran_war" },
+      { source: "Al Jazeera", title: "12 days: How 2025 Iran blueprint trapped US and Israel in longer war", url: "https://www.aljazeera.com/features/2026/3/11/12-days-how-2025-iran-blueprint-trapped-us-israel-in-longer-war" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 8, 2026", tag: "diplomacy", impact: "high",
+    title: "Mojtaba Khamenei elected as new Supreme Leader",
+    actor: "Iran's leadership succession", actorColor: "#c88b2a",
+    summary: "Iran's Assembly of Experts elects Ali Khamenei's son Mojtaba as the new Supreme Leader — the first dynastic succession in the Islamic Republic's history. The IRGC backs him.",
+    description: "Iran's Assembly of Experts met on March 8, 2026, and elected Mojtaba Khamenei — son of the slain Supreme Leader — as the Islamic Republic's new Supreme Leader. The election was widely seen as having been engineered by the IRGC, which viewed Mojtaba as a reliable hardliner who would continue the war and resist concessions. Senior Iranian officials including Parliament Speaker Ghalibaf and President Pezeshkian pledged allegiance. Analysts noted the succession consolidated power around the IRGC rather than clerical establishment.",
+    context: "The selection of Mojtaba Khamenei was historically unprecedented — the Islamic Republic had never before passed leadership dynastically, a practice that Khomeini explicitly rejected. Critics within Iran called it a sign of the system's failure. The younger Khamenei had previously served in the IRGC and was considered more hawkish than even his father on foreign policy.",
+    facts: [
+      "Mojtaba Khamenei had never held a formal public position — his selection was the first dynastic succession in the Islamic Republic",
+      "Ayatollah Khomeini, the Republic's founder, explicitly opposed passing leadership to a son",
+      "The IRGC's backing of Mojtaba was seen as cementing military dominance over the clerical establishment",
+      "NYT reported in late March that Iran's leadership was 'paralyzed' with severely disrupted decision-making"
+    ],
+    links: [
+      { source: "Wikipedia", title: "Timeline of the 2026 Iran war", url: "https://en.wikipedia.org/wiki/Timeline_of_the_2026_Iran_war" },
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 12, 2026", tag: "military", impact: "mid",
+    title: "U.S. KC-135 refueling aircraft downed over Iraq — 6 airmen killed",
+    actor: "U.S. losses mount", actorColor: "#c0392b",
+    summary: "A U.S. Air Force KC-135 refueling aircraft goes down over western Iraq, killing six airmen. The incident highlights the vulnerability of U.S. air logistics over hostile territory.",
+    description: "A U.S. Air Force KC-135 Stratotanker aerial refueling aircraft went down over western Iraq on March 12, killing all six airmen on board. The cause was not immediately confirmed — Iran claimed responsibility while U.S. officials investigated. A second aircraft involved in the same mission was damaged but able to land safely. The incident highlighted the operational risks of maintaining the intense U.S. air campaign, which required constant refueling missions over contested airspace.",
+    context: "By mid-March, the U.S. had lost 13 service members in the conflict. The war was entering its third week with no clear end in sight. Trump had initially said the operation would take 'four weeks or less' — but the conflict was proving more complex than anticipated.",
+    facts: [
+      "Six U.S. airmen killed — the single deadliest day for U.S. forces in the conflict",
+      "The KC-135 was performing an aerial refueling mission in support of strike operations over Iran",
+      "13 total U.S. service members had been killed by mid-March",
+      "Trump had initially forecast the conflict would last 'four weeks or less'"
+    ],
+    links: [
+      { source: "ABC News", title: "Iran war timeline — 1 month of escalating strikes", url: "https://abcnews.com/Politics/trump-iran-war-timeline-conflict-nears-week-6/story?id=131662530" },
+      { source: "CFR", title: "Iran's War With Israel and the United States", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 17–18, 2026", tag: "military", impact: "high",
+    title: "Iran security chief Larijani killed; South Pars gas field struck",
+    actor: "Escalation to energy infrastructure", actorColor: "#c0392b",
+    summary: "Israel kills Ali Larijani, Iran's top security official, in Tehran. Israel then strikes the South Pars gas field — the world's largest — shared by Iran and Qatar. Energy war begins.",
+    description: "On March 17, Ali Larijani — influential Secretary of Iran's Supreme National Security Council and one of the Islamic Republic's most powerful figures — was killed in an Israeli strike in Tehran. The following day, Israel struck the South Pars gas field in the Persian Gulf, a shared Iranian-Qatari facility that is the world's largest natural gas field. The attack signaled a deliberate move toward targeting energy and critical infrastructure. Iran warned it would target energy infrastructure across the Gulf in retaliation.",
+    context: "The South Pars strike was a major escalation. Qatar, a U.S. ally that hosts the massive Al Udeid Air Base used by U.S. forces, was directly affected. It put Washington in the position of supporting strikes that damaged a key ally's economy. Qatar's LNG exports — vital to European energy security — were severely disrupted.",
+    facts: [
+      "Larijani had been one of Iran's most powerful figures for decades — a former parliament speaker and chief nuclear negotiator",
+      "South Pars is the world's largest natural gas field, supplying much of Iran's energy revenue and Qatar's LNG exports",
+      "Qatar hosts Al Udeid Air Base — the largest U.S. air base in the Middle East, used extensively in the Iran campaign",
+      "Global LNG prices surged following the South Pars strike"
+    ],
+    links: [
+      { source: "ABC News", title: "Iran war one-month timeline", url: "https://abcnews.com/Politics/trump-iran-war-timeline-conflict-nears-week-6/story?id=131662530" },
+      { source: "House of Commons Library", title: "US/Israel-Iran conflict 2026", url: "https://commonslibrary.parliament.uk/research-briefings/cbp-10521/" }
+    ]
+  },
+  {
+    era: 6, date: "Mar 25–29, 2026", tag: "diplomacy", impact: "high",
+    title: "Iran rejects U.S. 15-point peace plan; Trump says talks 'going well'",
+    actor: "Diplomatic contradictions", actorColor: "#4e8ecb",
+    summary: "Iran formally rejects a U.S. 15-point peace proposal. Iran presents five counter-conditions including reparations and sovereignty over the Strait of Hormuz. Trump simultaneously says talks are 'going well.'",
+    description: "On March 25, Iran rejected the U.S. 15-point peace proposal through Omani intermediaries and presented five conditions for ending the war: cessation of U.S. and Israeli attacks on Iran and proxy forces; mechanisms to prevent resumption of war; compensation for damage caused; and international recognition of Iranian sovereignty over the Strait of Hormuz. On March 27, an Iranian strike on Prince Sultan Air Base in Saudi Arabia destroyed a U.S. E-3 AWACS radar aircraft and wounded 10 American service members. On March 29, Parliament Speaker Ghalibaf publicly rejected negotiations. The same day, Trump told reporters talks were 'going well' and Iran had agreed to 'most American demands.'",
+    context: "The gap between Trump's optimistic public statements and the actual state of negotiations was stark. Analysts said Trump's statements were designed to lower oil prices (which briefly worked) while 'fracturing' the Iranian regime's internal cohesion — a psychological pressure strategy rather than an accurate diplomatic update.",
+    facts: [
+      "Iran's five conditions included reparations for war damage and control over the Strait of Hormuz — conditions the U.S. called non-starters",
+      "The destroyed E-3 AWACS at Prince Sultan was a $300M aircraft — a critical airborne radar platform",
+      "Iran's strikes were deliberately targeting U.S. radar and communications assets to degrade missile defense",
+      "Trump's public optimism drove oil prices down temporarily — seen by analysts as deliberate economic warfare"
+    ],
+    links: [
+      { source: "Wikipedia", title: "2025–2026 Iran–United States negotiations", url: "https://en.wikipedia.org/wiki/2025%E2%80%93United_States_negotiations" },
+      { source: "CNN", title: "Live updates: UN vote on naval action in Strait of Hormuz", url: "https://www.cnn.com/2026/04/02/world/live-news/iran-war-us-trump-oil-intl-hnk" },
+      { source: "House of Commons Library", title: "US/Israel-Iran conflict 2026", url: "https://commonslibrary.parliament.uk/research-briefings/cbp-10521/" }
+    ]
+  },
+  {
+    era: 6, date: "Apr 1–2, 2026", tag: "military", impact: "high",
+    title: "Week 5 — Trump addresses nation; Hormuz blockade bites; war continues",
+    actor: "Ongoing conflict — no end in sight", actorColor: "#c0392b",
+    summary: "Trump delivers his first primetime address since the war began, saying objectives will be met 'very shortly' while promising strikes for 2–3 more weeks. Oil exports from the Gulf are down 76%. The war is now in its 34th day.",
+    description: "On April 1, 2026 — day 33 of the war — President Trump delivered his first primetime presidential address to the nation about the conflict. He said U.S. objectives would be completed 'very shortly' and that strikes would continue for the 'next two to three weeks.' He had previously forecast the war would last four weeks; White House press secretary Leavitt was maintaining a 'four to six week' timeline. Meanwhile, the economic impact was severe: oil loadings at ports west of Hormuz fell 76% in March compared to February; global oil prices remained above $100/barrel; airlines were adding fuel surcharges of 50–150%; and the IEA had released 400 million barrels from strategic reserves. In Iran itself, strikes continued across Tehran, Shiraz, Kermanshah, and other cities. Tehran had become a ghost town as civilians feared going outside.",
+    description: "As of April 2–3, 2026, the conflict shows no sign of imminent resolution. Iran has stated it will not negotiate under military threat. The U.S. has threatened extensive strikes on Iranian energy sites if the Strait of Hormuz is not reopened by April 6. Iran's new Supreme Leader has sent letters reaffirming support for Hezbollah. Gulf states have called on the UN Security Council to guarantee passage through Hormuz. A second U.S. carrier group (USS George H.W. Bush) has departed Norfolk, Virginia, heading for the region.",
+    context: "This is the most significant military confrontation the United States has entered since the 2003 Iraq invasion. Unlike Iraq, Iran is a far larger, more capable military power with a sophisticated missile arsenal, a regional proxy network, and the ability to close the world's most critical oil chokepoint. The conflict's economic fallout is already the largest global supply disruption since the 1970s energy crisis.",
+    facts: [
+      "Oil exports from ports west of the Strait of Hormuz fell 76% in March 2026 vs February",
+      "3.2 million Iranians have been displaced; over 1,500 civilians killed according to Iranian UN ambassador",
+      "13 U.S. service members killed as of April 2026; Iran estimates its military deaths at over 1,000",
+      "A U.S. E-3 AWACS radar aircraft was destroyed at Prince Sultan Air Base on March 27",
+      "The Strait of Hormuz carries ~20% of the world's oil; its effective closure is a global economic emergency",
+      "Trump warned on April 1 that strikes would continue for '2 to 3 more weeks' — the war's end remains uncertain"
+    ],
+    links: [
+      { source: "CFR", title: "Iran's War With Israel and the United States — updated Apr 2, 2026", url: "https://www.cfr.org/global-conflict-tracker/conflict/confrontation-between-united-states-and-iran" },
+      { source: "ABC News", title: "What Trump has said on the Iran war timeline — week 6", url: "https://abcnews.com/Politics/trump-iran-war-timeline-conflict-nears-week-6/story?id=131662530" },
+      { source: "CNN Live", title: "Live updates: Iran war, Hormuz, oil prices", url: "https://www.cnn.com/2026/04/02/world/live-news/iran-war-us-trump-oil-intl-hnk" },
+      { source: "House of Commons Library", title: "US/Israel–Iran conflict 2026 — UK Parliament briefing", url: "https://commonslibrary.parliament.uk/research-briefings/cbp-10521/" },
+      { source: "Al Jazeera", title: "12 days: How 2025 Iran blueprint trapped US and Israel in longer war", url: "https://www.aljazeera.com/features/2026/3/11/12-days-how-2025-iran-blueprint-trapped-us-israel-in-longer-war" }
+    ]
+  },
+];
+
+// ── GROUP BY ERA ──
+const eras = {};
+EVENTS.forEach(ev => {
+  if (!eras[ev.era]) eras[ev.era] = { meta: null, events: [] };
+  if (ev.eraYears) eras[ev.era].meta = { years: ev.eraYears, title: ev.eraTitle, desc: ev.eraDesc };
+  eras[ev.era].events.push(ev);
+});
+
+let activeFilter = 'all';
+
+function buildTimeline() {
+  const body = document.getElementById('timeline-body');
+  body.innerHTML = '';
+  let eraIndex = 0;
+
+  Object.keys(eras).forEach(eraKey => {
+    const era = eras[eraKey];
+    eraIndex++;
+    const section = document.createElement('div');
+    section.className = 'era-section';
+
+    if (era.meta) {
+      const header = document.createElement('div');
+      header.className = 'era-header';
+      header.innerHTML = `
+        <div class="era-num">${String(eraIndex).padStart(2,'0')}</div>
+        <div class="era-info">
+          <div class="era-years">${era.meta.years}</div>
+          <div class="era-title">${era.meta.title}</div>
+          <div class="era-desc">${era.meta.desc}</div>
+        </div>`;
+      section.appendChild(header);
+    }
+
+    era.events.forEach((ev, i) => {
+      const row = document.createElement('div');
+      row.className = 'event-row' + (activeFilter !== 'all' && ev.tag !== activeFilter ? ' hidden' : '');
+      row.style.animationDelay = `${i * 40}ms`;
+      const color = TAG_COLORS[ev.tag];
+      row.innerHTML = `
+        <div class="event-date-col">${ev.date.replace(' ', '<br>')}</div>
+        <div class="event-spine-col">
+          <div class="spine-line"></div>
+          <div class="event-dot" style="background:${color};color:${color}"></div>
+        </div>
+        <div class="event-content">
+          <div class="event-tags">
+            <span class="tag" style="color:${color};border-color:${color}">${ev.tag}</span>
+            ${ev.impact === 'high' ? `<span class="tag" style="color:#888;border-color:#333">major event</span>` : ''}
+          </div>
+          <div class="event-title-row">
+            <div class="event-title">${ev.title}</div>
+          </div>
+          <p class="event-summary">${ev.summary}</p>
+          <div class="expand-hint">↗ click to read full account + sources</div>
+        </div>`;
+      row.addEventListener('click', () => openPanel(ev));
+      section.appendChild(row);
+    });
+
+    body.appendChild(section);
+  });
+}
+
+function openPanel(ev) {
+  const overlay = document.getElementById('overlay');
+  const color = TAG_COLORS[ev.tag];
+
+  document.getElementById('panel-tag-display').innerHTML =
+    `<span class="tag" style="color:${color};border-color:${color}">${ev.tag}</span>`;
+  document.getElementById('panel-date').textContent = ev.date;
+  document.getElementById('panel-title').textContent = ev.title;
+  document.getElementById('actor-dot').style.background = ev.actorColor;
+  document.getElementById('actor-text').textContent = ev.actor;
+  document.getElementById('panel-desc').textContent = ev.description;
+  document.getElementById('panel-context').textContent = ev.context;
+
+  const factsEl = document.getElementById('panel-facts');
+  factsEl.innerHTML = ev.facts.map(f =>
+    `<div class="fact-item"><span class="fact-bullet">—</span><span class="fact-text">${f}</span></div>`
+  ).join('');
+
+  const linksEl = document.getElementById('panel-links');
+  linksEl.innerHTML = ev.links.map(l =>
+    `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="read-more-link">
+      <div class="link-info">
+        <div class="link-source">${l.source}</div>
+        <div class="link-title">${l.title}</div>
+      </div>
+      <span class="link-arrow">→</span>
+    </a>`
+  ).join('');
+
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('close-btn').addEventListener('click', closePanel);
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('overlay')) closePanel();
+});
+
+// Filter buttons (sidebar + mobile)
+document.querySelectorAll('.filter-btn, .mob-filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === activeFilter));
+    document.querySelectorAll('.mob-filter').forEach(b => b.classList.toggle('active', b.dataset.filter === activeFilter));
+    buildTimeline();
+  });
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+buildTimeline();
+</script>
+</body>
+</html>
